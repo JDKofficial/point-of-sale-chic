@@ -20,6 +20,7 @@ const TransaksiJualan = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedPelangganId, setSelectedPelangganId] = useState("walk-in");
   const [diskon, setDiskon] = useState(0);
+  const [diskonType, setDiskonType] = useState<"nilai" | "persentase">("nilai");
 
   const handleAddToCart = () => {
     if (!selectedProdukId) {
@@ -55,7 +56,8 @@ const TransaksiJualan = () => {
   };
 
   const subtotal = cart.reduce((sum, item) => sum + item.produk.harga * item.quantity, 0);
-  const total = subtotal - diskon;
+  const diskonAmount = diskonType === "persentase" ? (subtotal * diskon) / 100 : diskon;
+  const total = subtotal - diskonAmount;
 
   const handleCheckout = () => {
     if (cart.length === 0) {
@@ -73,6 +75,7 @@ const TransaksiJualan = () => {
     setCart([]);
     setSelectedPelangganId("walk-in");
     setDiskon(0);
+    setDiskonType("nilai");
   };
 
   return (
@@ -150,11 +153,27 @@ const TransaksiJualan = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="diskon">Diskon (Rp)</Label>
+                <Label htmlFor="diskonType">Tipe Diskon</Label>
+                <Select value={diskonType} onValueChange={(value: "nilai" | "persentase") => setDiskonType(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nilai">Nilai (Rp)</SelectItem>
+                    <SelectItem value="persentase">Persentase (%)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="diskon">
+                  Diskon {diskonType === "persentase" ? "(%)" : "(Rp)"}
+                </Label>
                 <Input
                   id="diskon"
                   type="number"
                   min="0"
+                  max={diskonType === "persentase" ? 100 : undefined}
                   value={diskon}
                   onChange={(e) => setDiskon(Number(e.target.value))}
                 />
@@ -222,8 +241,8 @@ const TransaksiJualan = () => {
                 <span>Rp {subtotal.toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-lg text-destructive">
-                <span>Diskon:</span>
-                <span>- Rp {diskon.toLocaleString()}</span>
+                <span>Diskon {diskonType === "persentase" ? `(${diskon}%)` : ""}:</span>
+                <span>- Rp {diskonAmount.toLocaleString()}</span>
               </div>
               <div className="border-t pt-3 flex justify-between text-2xl font-bold text-accent">
                 <span>Total:</span>
