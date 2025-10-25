@@ -18,7 +18,7 @@ const TransaksiJualan = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedProdukId, setSelectedProdukId] = useState("");
   const [quantity, setQuantity] = useState(1);
-  const [selectedPelangganId, setSelectedPelangganId] = useState("");
+  const [selectedPelangganId, setSelectedPelangganId] = useState("walk-in");
   const [diskon, setDiskon] = useState(0);
 
   const handleAddToCart = () => {
@@ -63,7 +63,7 @@ const TransaksiJualan = () => {
       return;
     }
 
-    const pelangganNama = selectedPelangganId
+    const pelangganNama = selectedPelangganId && selectedPelangganId !== "walk-in"
       ? dummyPelanggan.find((p) => p.id === selectedPelangganId)?.nama || "Walk-in Customer"
       : "Walk-in Customer";
 
@@ -71,7 +71,7 @@ const TransaksiJualan = () => {
     
     // Reset form
     setCart([]);
-    setSelectedPelangganId("");
+    setSelectedPelangganId("walk-in");
     setDiskon(0);
   };
 
@@ -139,7 +139,7 @@ const TransaksiJualan = () => {
                     <SelectValue placeholder="Pilih pelanggan" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Walk-in Customer</SelectItem>
+                    <SelectItem value="walk-in">Walk-in Customer</SelectItem>
                     {dummyPelanggan.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.nama}
