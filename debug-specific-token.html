@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Specific Token</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            font-size: 12px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Token Spesifik</h1>
+        
+        <h3>Data dari URL:</h3>
+        <div class="info result">
+Email: devantr14@gmail.com
+Token: ZGV2YW50cjE0JTQwZ21haWwuY29t_1761485828094_64sgsf2g2yi
+URL: http://localhost:8081/reset-password-mailketing?token=ZGV2YW50cjE0JTQwZ21haWwuY29t_1761485828094_64sgsf2g2yi&email=devantr14%40gmail.com
+        </div>
+
+        <button onclick="debugSpecificToken()">Debug Token Ini</button>
+        <button onclick="generateNewToken()">Generate Token Baru untuk Email Ini</button>
+        <button onclick="checkAllStorage()">Lihat Semua Storage</button>
+        <button onclick="clearStorage()">Clear Storage</button>
+
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const specificEmail = 'devantr14@gmail.com';
+        const specificToken = 'ZGV2YW50cjE0JTQwZ21haWwuY29t_1761485828094_64sgsf2g2yi';
+
+        function getStoredResetToken(email) {
+            try {
+                const key = `reset_token_${email}`;
+                const stored = localStorage.getItem(key);
+                console.log('🔍 Reading from storage:', { key, stored });
+                
+                if (!stored) {
+                    return null;
+                }
+                
+                const parsed = JSON.parse(stored);
+                console.log('🔍 Parsed data:', parsed);
+                return parsed;
+            } catch (error) {
+                console.error('❌ Error reading from localStorage:', error);
+                return null;
+            }
+        }
+
+        function verifyResetToken(email, token) {
+            console.log('🔍 Verifying token for email:', email);
+            console.log('🔍 Token received:', token);
+            
+            const storedData = getStoredResetToken(email);
+            console.log('🔍 Stored data:', storedData);
+            
+            if (!storedData) {
+                console.log('❌ No stored data found');
+                return false;
+            }
+
+            const tokenMatches = storedData.token === token;
+            const timeElapsed = Date.now() - storedData.timestamp;
+            const isNotExpired = timeElapsed < (60 * 60 * 1000); // 1 hour
+            
+            console.log('🔍 Token matches:', tokenMatches);
+            console.log('🔍 Time elapsed (ms):', timeElapsed);
+            console.log('🔍 Time elapsed (minutes):', Math.round(timeElapsed / 1000 / 60));
+            console.log('🔍 Not expired:', isNotExpired);
+            
+            const isValid = tokenMatches && isNotExpired;
+            console.log('🔍 Final result:', isValid);
+            
+            return isValid;
+        }
+
+        function generateCustomToken(email) {
+            const timestamp = Date.now();
+            const random = Math.random().toString(36).substring(2);
+            const emailHash = btoa(email).substring(0, 8);
+            return `${emailHash}_${timestamp}_${random}`;
+        }
+
+        function storeResetToken(email, token) {
+            const data = {
+                token,
+                timestamp: Date.now(),
+                email
+            };
+            const key = `reset_token_${email}`;
+            localStorage.setItem(key, JSON.stringify(data));
+            console.log('💾 Token stored:', { key, data });
+            return { key, data };
+        }
+
+        function debugSpecificToken() {
+            console.log('=== DEBUGGING SPECIFIC TOKEN ===');
+            
+            let result = `Debugging Token untuk: ${specificEmail}\n`;
+            result += `Token: ${specificToken}\n\n`;
+
+            // Check what's stored
+            const storedData = getStoredResetToken(specificEmail);
+            result += `Data tersimpan di localStorage:\n`;
+            if (storedData) {
+                result += `- Email: ${storedData.email}\n`;
+                result += `- Token: ${storedData.token}\n`;
+                result += `- Timestamp: ${storedData.timestamp}\n`;
+                result += `- Created: ${new Date(storedData.timestamp).toLocaleString()}\n`;
+                
+                const timeElapsed = Date.now() - storedData.timestamp;
+                result += `- Age: ${Math.round(timeElapsed / 1000 / 60)} minutes\n`;
+                result += `- Expired: ${timeElapsed > (60 * 60 * 1000) ? 'YES' : 'NO'}\n\n`;
+                
+                // Compare tokens
+                result += `Perbandingan Token:\n`;
+                result += `- URL Token: ${specificToken}\n`;
+                result += `- Stored Token: ${storedData.token}\n`;
+                result += `- Match: ${specificToken === storedData.token ? 'YES ✅' : 'NO ❌'}\n\n`;
+                
+                if (specificToken !== storedData.token) {
+                    result += `MASALAH: Token tidak cocok!\n`;
+                    result += `Kemungkinan penyebab:\n`;
+                    result += `1. Token di URL berbeda dengan yang disimpan\n`;
+                    result += `2. Ada masalah URL encoding/decoding\n`;
+                    result += `3. Token sudah di-overwrite oleh request baru\n\n`;
+                }
+            } else {
+                result += `❌ TIDAK ADA DATA TERSIMPAN untuk email: ${specificEmail}\n\n`;
+                result += `Kemungkinan penyebab:\n`;
+                result += `1. Token belum pernah di-generate\n`;
+                result += `2. localStorage sudah di-clear\n`;
+                result += `3. Email tidak cocok (case sensitive)\n\n`;
+            }
+
+            // Verify using the function
+            const isValid = verifyResetToken(specificEmail, specificToken);
+            result += `Hasil verifikasi: ${isValid ? 'VALID ✅' : 'INVALID ❌'}\n`;
+
+            showResult(result, storedData && specificToken === storedData.token ? 'success' : 'error');
+        }
+
+        function generateNewToken() {
+            const newToken = generateCustomToken(specificEmail);
+            const storage = storeResetToken(specificEmail, newToken);
+            
+            let result = `Token baru di-generate untuk: ${specificEmail}\n\n`;
+            result += `New Token: ${newToken}\n`;
+            result += `Storage Key: ${storage.key}\n\n`;
+            result += `New Reset URL:\n`;
+            result += `http://localhost:8081/reset-password-mailketing?token=${encodeURIComponent(newToken)}&email=${encodeURIComponent(specificEmail)}\n\n`;
+            result += `Silakan test URL baru ini!`;
+
+            showResult(result, 'success');
+        }
+
+        function checkAllStorage() {
+            const allKeys = Object.keys(localStorage);
+            const resetTokenKeys = allKeys.filter(key => key.startsWith('reset_token_'));
+            
+            let result = `Semua token reset password di localStorage:\n\n`;
+            
+            if (resetTokenKeys.length === 0) {
+                result += `❌ Tidak ada token reset password tersimpan\n`;
+            } else {
+                resetTokenKeys.forEach(key => {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key));
+                        const timeElapsed = Date.now() - data.timestamp;
+                        const isExpired = timeElapsed > (60 * 60 * 1000);
+                        
+                        result += `Key: ${key}\n`;
+                        result += `Email: ${data.email}\n`;
+                        result += `Token: ${data.token}\n`;
+                        result += `Created: ${new Date(data.timestamp).toLocaleString()}\n`;
+                        result += `Age: ${Math.round(timeElapsed / 1000 / 60)} minutes\n`;
+                        result += `Status: ${isExpired ? '❌ EXPIRED' : '✅ VALID'}\n`;
+                        result += `---\n`;
+                    } catch (error) {
+                        result += `Key: ${key} - ❌ Error parsing: ${error.message}\n`;
+                    }
+                });
+            }
+
+            showResult(result, 'info');
+        }
+
+        function clearStorage() {
+            const allKeys = Object.keys(localStorage);
+            const resetTokenKeys = allKeys.filter(key => key.startsWith('reset_token_'));
+            
+            resetTokenKeys.forEach(key => {
+                localStorage.removeItem(key);
+            });
+
+            showResult(`✅ Berhasil menghapus ${resetTokenKeys.length} token reset password`, 'success');
+        }
+
+        function showResult(message, type) {
+            const element = document.getElementById('result');
+            element.textContent = message;
+            element.className = `result ${type}`;
+            element.style.display = 'block';
+        }
+
+        // Auto-run debug on page load
+        window.onload = function() {
+            console.log('🔧 Debug tool loaded');
+            debugSpecificToken();
+        };
+    </script>
+</body>
+</html>

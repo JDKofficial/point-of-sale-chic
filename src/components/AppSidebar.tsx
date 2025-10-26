@@ -1,5 +1,6 @@
-import { Home, Package, Users, Receipt, ShoppingCart, LogOut } from "lucide-react";
+import { Home, Package, Users, Receipt, ShoppingCart, LogOut, Building2 } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { useState } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,6 +13,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
+import ProfileModal from "./ProfileModal";
 
 const menuItems = [
   { title: "Dashboard", url: "/", icon: Home },
@@ -23,8 +25,9 @@ const menuItems = [
 
 export function AppSidebar() {
   const { state } = useSidebar();
-  const { logout } = useAuth();
+  const { signOut } = useAuth();
   const collapsed = state === "collapsed";
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   return (
     <Sidebar collapsible="icon"  className={collapsed ? "w-14" : "w-64"}>
@@ -61,13 +64,32 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        <SidebarGroup>
+          <SidebarGroupLabel>Pengaturan</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => setProfileModalOpen(true)}>
+                  <Building2 className="h-4 w-4" />
+                  {!collapsed && <span>Profil Toko</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         <div className="mt-auto p-4">
-          <SidebarMenuButton onClick={logout} className="w-full hover:bg-destructive hover:text-destructive-foreground">
+          <SidebarMenuButton onClick={signOut} className="w-full hover:bg-destructive hover:text-destructive-foreground">
             <LogOut className="h-4 w-4" />
             {!collapsed && <span>Logout</span>}
           </SidebarMenuButton>
         </div>
       </SidebarContent>
+
+      <ProfileModal 
+        open={profileModalOpen} 
+        onOpenChange={setProfileModalOpen} 
+      />
     </Sidebar>
   );
 }

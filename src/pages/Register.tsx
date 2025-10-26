@@ -14,7 +14,7 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { signUp } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,16 +25,23 @@ const Register = () => {
       return;
     }
 
+    if (password.length < 6) {
+      toast.error("Password minimal 6 karakter!");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const success = await register(email, password, name);
-      if (success) {
-        toast.success("Registrasi berhasil!");
-        navigate("/");
+      const { error } = await signUp(email, password, name);
+      if (error) {
+        toast.error(error.message || "Registrasi gagal. Silakan coba lagi.");
+      } else {
+        toast.success("Registrasi berhasil! Silakan cek email untuk verifikasi.");
+        navigate("/login");
       }
     } catch (error) {
-      toast.error("Registrasi gagal. Silakan coba lagi.");
+      toast.error("Terjadi kesalahan. Silakan coba lagi.");
     } finally {
       setLoading(false);
     }

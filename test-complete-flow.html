@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Complete Reset Password Flow</title>
+</head>
+<body>
+    <h1>Test Complete Reset Password Flow</h1>
+    <div id="results"></div>
+    <br>
+    <button onclick="testCompleteFlow()">Test Complete Flow</button>
+    <button onclick="clearStorage()">Clear Storage</button>
+
+    <script>
+        function testCompleteFlow() {
+            const email = 'devantr14@gmail.com';
+            console.log('=== TESTING COMPLETE FLOW ===');
+            
+            // Step 1: Generate token (simulate sendResetPasswordEmail)
+            console.log('Step 1: Generating token...');
+            const timestamp = Date.now();
+            const random = Math.random().toString(36).substring(2);
+            const encodedEmail = btoa(email.replace('@', '%40'));
+            const token = `${encodedEmail}_${timestamp}_${random}`;
+            
+            console.log('Generated token:', token);
+            
+            // Step 2: Store token (simulate storeResetToken)
+            console.log('Step 2: Storing token...');
+            const key = `reset_token_${email}`;
+            const data = {
+                token: token,
+                timestamp: timestamp,
+                email: email
+            };
+            
+            localStorage.setItem(key, JSON.stringify(data));
+            console.log('Stored with key:', key);
+            console.log('Stored data:', data);
+            
+            // Step 3: Verify token (simulate verifyResetToken)
+            console.log('Step 3: Verifying token...');
+            const storedData = localStorage.getItem(key);
+            console.log('Retrieved data:', storedData);
+            
+            if (storedData) {
+                const parsed = JSON.parse(storedData);
+                const tokenMatches = parsed.token === token;
+                const timeElapsed = Date.now() - parsed.timestamp;
+                const isNotExpired = timeElapsed < (60 * 60 * 1000); // 1 hour
+                const isValid = tokenMatches && isNotExpired;
+                
+                console.log('Token matches:', tokenMatches);
+                console.log('Time elapsed (ms):', timeElapsed);
+                console.log('Not expired:', isNotExpired);
+                console.log('Is valid:', isValid);
+                
+                // Step 4: Create reset URL
+                const resetUrl = `http://localhost:8081/reset-password-mailketing?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+                
+                document.getElementById('results').innerHTML = `
+                    <h3>Test Results:</h3>
+                    <p><strong>Email:</strong> ${email}</p>
+                    <p><strong>Generated Token:</strong> ${token}</p>
+                    <p><strong>Storage Key:</strong> ${key}</p>
+                    <p><strong>Token Valid:</strong> ${isValid}</p>
+                    <p><strong>Token Matches:</strong> ${tokenMatches}</p>
+                    <p><strong>Not Expired:</strong> ${isNotExpired}</p>
+                    <p><strong>Time Elapsed:</strong> ${Math.round(timeElapsed / 1000)} seconds</p>
+                    <br>
+                    <p><strong>Reset URL:</strong></p>
+                    <p><a href="${resetUrl}" target="_blank">${resetUrl}</a></p>
+                `;
+            } else {
+                document.getElementById('results').innerHTML = `
+                    <h3>ERROR:</h3>
+                    <p>Failed to retrieve stored token data!</p>
+                `;
+            }
+        }
+        
+        function clearStorage() {
+            localStorage.clear();
+            document.getElementById('results').innerHTML = '<p>LocalStorage cleared!</p>';
+            console.log('LocalStorage cleared');
+        }
+        
+        // Show current localStorage content
+        function showCurrentStorage() {
+            console.log('=== CURRENT LOCALSTORAGE ===');
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                console.log(`${key}: ${localStorage.getItem(key)}`);
+            }
+        }
+        
+        showCurrentStorage();
+    </script>
+</body>
+</html>

@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ShoppingCart, ArrowLeft } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Send } from "lucide-react";
+import { mailketingResetPasswordService } from "../lib/mailketing-reset-password";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -13,13 +14,28 @@ const ForgotPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email) {
+      toast.error("Masukkan email terlebih dahulu");
+      return;
+    }
+
     setLoading(true);
 
-    // Dummy reset password
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast.success("Link reset password telah dikirim ke email Anda!");
-    setEmail("");
-    setLoading(false);
+    try {
+      const result = await mailketingResetPasswordService.sendResetPasswordEmail(email);
+      
+      if (result.success) {
+        toast.success(result.message);
+        setEmail("");
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat mengirim email reset password");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -47,9 +63,31 @@ const ForgotPassword = () => {
                 required
               />
             </div>
+
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Mengirim..." : "Kirim Link Reset"}
+              {loading ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Mengirim Link Reset...
+                </div>
+              ) : (
+                <div className="flex items-center">
+                  <Send className="h-4 w-4 mr-2" />
+                  Kirim Link Reset Password
+                </div>
+              )}
             </Button>
+
+            {/* Info Box */}
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+              <div className="flex">
+                <div className="text-blue-500 text-sm mr-2">ℹ️</div>
+                <div className="text-blue-700 text-xs">
+                  Link reset password akan dikirim ke email Anda dan akan kedaluwarsa dalam 1 jam.
+                </div>
+              </div>
+            </div>
+
             <div className="text-center">
               <Link to="/login" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
                 <ArrowLeft className="h-4 w-4" />

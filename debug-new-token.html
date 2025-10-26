@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug New Token</title>
+</head>
+<body>
+    <h1>Debug New Token</h1>
+    <div id="results"></div>
+
+    <script>
+        const email = 'devantr14@gmail.com';
+        const token = 'ZGV2YW50cjE0JTQwZ21haWwuY29t_1761486586427_9fzibtay5m4';
+        
+        function debugToken() {
+            console.log('=== TOKEN DEBUG ===');
+            console.log('Email:', email);
+            console.log('Token:', token);
+            
+            // Check what's stored in localStorage
+            const key = `reset_token_${email}`;
+            const stored = localStorage.getItem(key);
+            console.log('Storage key:', key);
+            console.log('Stored data:', stored);
+            
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                console.log('Parsed data:', parsed);
+                console.log('Stored token:', parsed.token);
+                console.log('Token match:', parsed.token === token);
+                console.log('Timestamp:', parsed.timestamp);
+                console.log('Time elapsed (ms):', Date.now() - parsed.timestamp);
+                console.log('Time elapsed (minutes):', Math.round((Date.now() - parsed.timestamp) / 1000 / 60));
+                console.log('Is expired (>60min):', (Date.now() - parsed.timestamp) > (60 * 60 * 1000));
+            }
+            
+            // Decode the token parts
+            const parts = token.split('_');
+            console.log('Token parts:', parts);
+            
+            if (parts.length >= 3) {
+                try {
+                    const decodedEmail = atob(parts[0]);
+                    console.log('Decoded email from token:', decodedEmail);
+                    console.log('Expected email format:', email.replace('@', '%40'));
+                } catch (e) {
+                    console.error('Error decoding email part:', e);
+                }
+                
+                console.log('Timestamp from token:', parts[1]);
+                console.log('Random part:', parts[2]);
+            }
+            
+            // Show results in HTML
+            document.getElementById('results').innerHTML = `
+                <h3>Debug Results:</h3>
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Token:</strong> ${token}</p>
+                <p><strong>Storage Key:</strong> ${key}</p>
+                <p><strong>Stored Data:</strong> ${stored || 'NOT FOUND'}</p>
+                ${stored ? `
+                    <p><strong>Token Match:</strong> ${JSON.parse(stored).token === token}</p>
+                    <p><strong>Time Elapsed:</strong> ${Math.round((Date.now() - JSON.parse(stored).timestamp) / 1000 / 60)} minutes</p>
+                ` : ''}
+            `;
+        }
+        
+        // Run debug immediately
+        debugToken();
+        
+        // Also add a button to clear localStorage and try again
+        document.body.innerHTML += `
+            <br>
+            <button onclick="localStorage.clear(); location.reload();">Clear LocalStorage & Reload</button>
+            <button onclick="debugToken()">Run Debug Again</button>
+        `;
+    </script>
+</body>
+</html>

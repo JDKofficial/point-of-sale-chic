@@ -12,7 +12,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,13 +20,15 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const success = await login(email, password);
-      if (success) {
+      const { error } = await signIn(email, password);
+      if (error) {
+        toast.error(error.message || "Login gagal. Silakan coba lagi.");
+      } else {
         toast.success("Login berhasil!");
         navigate("/");
       }
     } catch (error) {
-      toast.error("Login gagal. Silakan coba lagi.");
+      toast.error("Terjadi kesalahan. Silakan coba lagi.");
     } finally {
       setLoading(false);
     }

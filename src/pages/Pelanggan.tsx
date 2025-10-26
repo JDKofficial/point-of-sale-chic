@@ -1,66 +1,177 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { dummyPelanggan, type Pelanggan } from "@/data/dummyData";
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  store_id: string;
+  created_at: string;
+}
 
 const Pelanggan = () => {
-  const [pelanggan, setPelanggan] = useState<Pelanggan[]>(dummyPelanggan);
+  const { user } = useAuth();
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingPelanggan, setEditingPelanggan] = useState<Pelanggan | null>(null);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [storeId, setStoreId] = useState<string>('');
   const [formData, setFormData] = useState({
-    nama: "",
+    name: "",
     email: "",
-    telepon: "",
-    alamat: "",
+    phone: "",
+    address: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Fetch store data
+  const fetchStoreData = async () => {
+    if (!user?.id) return;
     
-    if (editingPelanggan) {
-      setPelanggan(pelanggan.map(p => 
-        p.id === editingPelanggan.id 
-          ? { ...p, ...formData }
-          : p
-      ));
-      toast.success("Pelanggan berhasil diupdate!");
-    } else {
-      const newPelanggan: Pelanggan = {
-        id: String(pelanggan.length + 1),
-        ...formData,
-      };
-      setPelanggan([...pelanggan, newPelanggan]);
-      toast.success("Pelanggan berhasil ditambahkan!");
-    }
+    try {
+      const { data: storeData, error } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('owner_id', user.id)
+        .single();
 
-    setIsDialogOpen(false);
-    resetForm();
+      if (error) throw error;
+      if (storeData) {
+        setStoreId(storeData.id);
+      }
+    } catch (error) {
+      console.error('Error fetching store:', error);
+      toast.error('Gagal mengambil data toko');
+    }
   };
 
-  const handleEdit = (p: Pelanggan) => {
-    setEditingPelanggan(p);
+  // Fetch customers
+  const fetchCustomers = async () => {
+    if (!storeId) return;
+    
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('store_id', storeId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCustomers(data || []);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      toast.error('Gagal mengambil data pelanggan');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchStoreData();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (storeId) {
+      fetchCustomers();
+    }
+  }, [storeId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!storeId) {
+      toast.error('Store ID tidak ditemukan');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      if (editingCustomer) {
+        // Update existing customer
+        const { error } = await supabase
+          .from('customers')
+          .update({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            address: formData.address,
+          })
+          .eq('id', editingCustomer.id);
+
+        if (error) throw error;
+        toast.success("Pelanggan berhasil diupdate!");
+      } else {
+        // Create new customer
+        const { error } = await supabase
+          .from('customers')
+          .insert({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            address: formData.address,
+            store_id: storeId,
+          });
+
+        if (error) throw error;
+        toast.success("Pelanggan berhasil ditambahkan!");
+      }
+
+      setIsDialogOpen(false);
+      resetForm();
+      fetchCustomers(); // Refresh the list
+    } catch (error) {
+      console.error('Error saving customer:', error);
+      toast.error('Gagal menyimpan data pelanggan');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEdit = (customer: Customer) => {
+    setEditingCustomer(customer);
     setFormData({
-      nama: p.nama,
-      email: p.email,
-      telepon: p.telepon,
-      alamat: p.alamat,
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+      address: customer.address,
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setPelanggan(pelanggan.filter(p => p.id !== id));
-    toast.success("Pelanggan berhasil dihapus!");
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      toast.success("Pelanggan berhasil dihapus!");
+      fetchCustomers(); // Refresh the list
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      toast.error('Gagal menghapus pelanggan');
+    }
   };
 
   const resetForm = () => {
-    setFormData({ nama: "", email: "", telepon: "", alamat: "" });
-    setEditingPelanggan(null);
+    setFormData({ name: "", email: "", phone: "", address: "" });
+    setEditingCustomer(null);
   };
 
   return (
@@ -82,18 +193,19 @@ const Pelanggan = () => {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingPelanggan ? "Edit Pelanggan" : "Tambah Pelanggan Baru"}</DialogTitle>
+              <DialogTitle>{editingCustomer ? "Edit Pelanggan" : "Tambah Pelanggan Baru"}</DialogTitle>
               <DialogDescription>
-                {editingPelanggan ? "Update informasi pelanggan" : "Tambahkan pelanggan baru"}
+                {editingCustomer ? "Update informasi pelanggan" : "Tambahkan pelanggan baru"}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="nama">Nama Lengkap</Label>
+                <Label htmlFor="name">Nama Lengkap</Label>
                 <Input
-                  id="nama"
-                  value={formData.nama}
-                  onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  disabled={isSubmitting}
                   required
                 />
               </div>
@@ -104,29 +216,33 @@ const Pelanggan = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  disabled={isSubmitting}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="telepon">Telepon</Label>
+                <Label htmlFor="phone">Telepon</Label>
                 <Input
-                  id="telepon"
-                  value={formData.telepon}
-                  onChange={(e) => setFormData({ ...formData, telepon: e.target.value })}
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  disabled={isSubmitting}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="alamat">Alamat</Label>
+                <Label htmlFor="address">Alamat</Label>
                 <Input
-                  id="alamat"
-                  value={formData.alamat}
-                  onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  disabled={isSubmitting}
                   required
                 />
               </div>
-              <Button type="submit" className="w-full">
-                {editingPelanggan ? "Update Pelanggan" : "Tambah Pelanggan"}
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {editingCustomer ? "Update Pelanggan" : "Tambah Pelanggan"}
               </Button>
             </form>
           </DialogContent>
@@ -134,35 +250,50 @@ const Pelanggan = () => {
       </div>
 
       <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nama</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Telepon</TableHead>
-              <TableHead>Alamat</TableHead>
-              <TableHead className="text-right">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {pelanggan.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell className="font-medium">{p.nama}</TableCell>
-                <TableCell>{p.email}</TableCell>
-                <TableCell>{p.telepon}</TableCell>
-                <TableCell>{p.alamat}</TableCell>
-                <TableCell className="text-right space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(p)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDelete(p.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
+        {loading ? (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Memuat data pelanggan...</span>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nama</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Telepon</TableHead>
+                <TableHead>Alamat</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {customers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    Belum ada data pelanggan
+                  </TableCell>
+                </TableRow>
+              ) : (
+                customers.map((customer) => (
+                  <TableRow key={customer.id}>
+                    <TableCell className="font-medium">{customer.name}</TableCell>
+                    <TableCell>{customer.email}</TableCell>
+                    <TableCell>{customer.phone}</TableCell>
+                    <TableCell>{customer.address}</TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(customer)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDelete(customer.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
       </div>
     </div>
   );

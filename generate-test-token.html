@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Test Token</title>
+</head>
+<body>
+    <h1>Generate Test Token</h1>
+    <button onclick="generateToken()">Generate New Token</button>
+    <div id="result"></div>
+
+    <script>
+        function generateToken() {
+            const email = 'devantr14@gmail.com';
+            
+            // Generate token (same logic as in mailketing-reset-password.ts)
+            const timestamp = Date.now();
+            const randomString = Math.random().toString(36).substring(2, 15);
+            const encodedEmail = btoa(email.replace('@', '%40'));
+            const token = `${encodedEmail}_${timestamp}_${randomString}`;
+            
+            // Store in localStorage
+            const key = `reset_token_${email}`;
+            const data = {
+                token: token,
+                timestamp: timestamp,
+                email: email
+            };
+            
+            localStorage.setItem(key, JSON.stringify(data));
+            
+            // Create URL
+            const resetUrl = `http://localhost:8081/reset-password-mailketing?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+            
+            document.getElementById('result').innerHTML = `
+                <h3>Token Generated:</h3>
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Token:</strong> ${token}</p>
+                <p><strong>Stored in localStorage with key:</strong> ${key}</p>
+                <p><strong>Reset URL:</strong></p>
+                <p><a href="${resetUrl}" target="_blank">${resetUrl}</a></p>
+                <br>
+                <h3>LocalStorage Check:</h3>
+                <p><strong>Stored Data:</strong> ${localStorage.getItem(key)}</p>
+            `;
+        }
+    </script>
+</body>
+</html>
