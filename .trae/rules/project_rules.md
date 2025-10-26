@@ -1,0 +1,1 @@
+1. Gunakan MCP Supabase untuk kebutuhan desain database, melihat data dan struktur data dalam pembuatan aplikasi.
